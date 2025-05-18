@@ -10,7 +10,7 @@ const port = 3000;
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'bd2',
+  database: 'bd3',
   password: '123',
   port: 5432,
 });
@@ -232,12 +232,38 @@ app.post('/api/orders/place', async (req, res) => {
   }
 });
 
+app.get('/api/orders', async (req, res) => {
+    try {
+      const ordersResult = await pool.query(
+        'SELECT id, user_id, order_date, status, total, latitude, longitude, driver_longitude, driver_latitude FROM orders ORDER BY order_date DESC'
+      );
+      const orders = ordersResult.rows;
+  
+      // Fetch order items for each order
+      for (const order of orders) {
+        const itemsResult = await pool.query(
+          `SELECT oi.quantity, p.title, p.author, p.price, p.photo_base64
+           FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
+           WHERE oi.order_id = $1`,
+          [order.id]
+        );
+        order.items = itemsResult.rows;
+      }
+  
+      res.send(orders);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ error: 'Error fetching all orders' });
+    }
+  });
+
 // Get orders for user with order items
 app.get('/api/orders/:userId', async (req, res) => {
   const userId = req.params.userId;
   try {
     const ordersResult = await pool.query(
-      'SELECT id, order_date, status, total, latitude, longitude FROM orders WHERE user_id = $1 ORDER BY order_date DESC',
+      'SELECT id, order_date, status, total, latitude, longitude, driver_longitude, driver_latitude FROM orders WHERE user_id = $1 ORDER BY order_date DESC',
       [userId]
     );
     const orders = ordersResult.rows;
@@ -260,40 +286,67 @@ app.get('/api/orders/:userId', async (req, res) => {
   }
 });
 
-// Get deliveries for driver
-app.get('/api/deliveries/driver/:driverId', async (req, res) => {
-  try {
-    const deliveriesResult = await pool.query(
-      `SELECT d.*, o.user_id, o.latitude, o.longitude, o.status as order_status
-       FROM deliveries d
-       JOIN orders o ON d.order_id = o.id
-       WHERE d.driver_id = $1
-       ORDER BY d.assigned_at DESC`,
-      [req.params.driverId]
-    );
-    res.send(deliveriesResult.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Error fetching deliveries' });
-  }
-});
+// Update order with driver's latitude and longitude
+app.put('/api/orders/:orderId', async (req, res) => {
+    const { orderId } = req.params;
+    const { driver_latitude, driver_longitude } = req.body;
+  
+    if (driver_latitude === undefined || driver_longitude === undefined) {
+      return res.status(400).send({ error: 'Missing driver_latitude or driver_longitude' });
+    }
+  
+    try {
+      await pool.query(
+        `UPDATE orders 
+         SET driver_latitude = $1, driver_longitude = $2 
+         WHERE id = $3`,
+        [driver_latitude, driver_longitude, orderId]
+      );
+      res.send({ message: 'Driver location updated for order' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ error: 'Error updating driver location' });
+    }
+  });
+  
+  app.put('/api/orders1/:orderId', async (req, res) => {
+    const { orderId } = req.params;
+  
+    try {
+      await pool.query(
+        `UPDATE orders 
+         SET status = 'accepted'
+         WHERE id = $1`,
+        [orderId]
+      );
+  
+      res.send({ message: 'Order status updated to accepted' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ error: 'Error updating order status' });
+    }
+  });
+  
 
-// Driver accepts a delivery
-app.post('/api/deliveries/:deliveryId/accept', async (req, res) => {
-  const { driverLongitude, driverLatitude } = req.body;
-  try {
-    await pool.query(
-      `UPDATE deliveries
-       SET status = 'accepted', driver_longitude = $1, driver_latitude = $2, assigned_at = CURRENT_TIMESTAMP
-       WHERE id = $3`,
-      [driverLongitude, driverLatitude, req.params.deliveryId]
-    );
-    res.send({ message: 'Delivery accepted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send({ error: 'Error accepting delivery' });
-  }
-});
+  app.get('/api/orders/:orderId', async (req, res) => {
+    const { orderId } = req.params;
+  
+    try {
+      const result = await pool.query(
+        `SELECT * FROM orders WHERE id = $1`,
+        [orderId]
+      );
+  
+      if (result.rows.length === 0) {
+        return res.status(404).send({ error: 'Order not found' });
+      }
+  
+      res.send(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send({ error: 'Error fetching order details' });
+    }
+  });
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

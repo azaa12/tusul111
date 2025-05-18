@@ -1,0 +1,65 @@
+-- Users table (same as before)
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100),
+  email VARCHAR(100) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  is_driver BOOLEAN DEFAULT FALSE
+);
+
+-- Products table
+CREATE TABLE products (
+  id SERIAL PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  author VARCHAR(255),
+  description TEXT,
+  price NUMERIC(10, 2),
+  stock INTEGER DEFAULT 0,
+  photo_base64 TEXT
+);
+
+-- Orders table (basic order info, no driver info here)
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  order_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status VARCHAR(20) DEFAULT 'pending',   -- order status: pending, completed, canceled, etc.
+  total NUMERIC(10,2) NOT NULL,
+  longitude DECIMAL(9,6),                 -- customer's delivery location
+  latitude DECIMAL(9,6),
+  driver_latitude DECIMAL(9,6),           -- driver's current location (nullable)
+  driver_longitude DECIMAL(9,6),          -- driver's current location (nullable)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Order items (products in the order)
+CREATE TABLE order_items (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES products(id),
+  quantity INTEGER NOT NULL,
+  price NUMERIC(10,2) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Cart items
+CREATE TABLE cart_items (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  UNIQUE(user_id, product_id)
+);
+
+-- Deliveries table (linked to an order and a driver)
+CREATE TABLE deliveries (
+  id SERIAL PRIMARY KEY,
+  order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+  driver_id INTEGER REFERENCES users(id),          -- driver assigned to delivery
+  status VARCHAR(20) DEFAULT 'waiting',            -- waiting, accepted, delivering, completed, failed
+  driver_longitude DECIMAL(9,6),                    -- driver's current location
+  driver_latitude DECIMAL(9,6),
+  assigned_at TIMESTAMP,                            -- when driver accepted
+  started_at TIMESTAMP,                             -- when delivery started
+  completed_at TIMESTAMP                             -- when delivery completed
+);
