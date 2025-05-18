@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:app/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -105,9 +106,17 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (index == 3) {
+      // Logout tapped: navigate to LoginPage and remove HomePage from stack
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   Widget _buildBody() {
@@ -118,6 +127,8 @@ class _HomePageState extends State<HomePage> {
         return CartPage(userId: widget.userId);
       case 2:
         return OrderPage(userId: widget.userId);
+      case 3:
+        return LoginPage();
       default:
         return buildProductList();
     }
@@ -222,6 +233,7 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.receipt_long),
             label: 'Orders',
           ),
+          BottomNavigationBarItem(icon: Icon(Icons.logout), label: 'Logout'),
         ],
       ),
     );

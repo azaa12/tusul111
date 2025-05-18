@@ -25,13 +25,13 @@ class _OrderPageState extends State<OrderPage> {
   Future<void> fetchOrders() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/api/orders/${widget.userId}'),
+        Uri.parse('http://localhost:3000/api/orders3/${widget.userId}'),
       );
 
       if (response.statusCode == 200) {
         setState(() {
           orders = jsonDecode(response.body);
-          print(orders);
+
           isLoading = false;
         });
       } else {

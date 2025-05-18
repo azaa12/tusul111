@@ -259,7 +259,7 @@ app.get('/api/orders', async (req, res) => {
   });
 
 // Get orders for user with order items
-app.get('/api/orders/:userId', async (req, res) => {
+app.get('/api/orders3/:userId', async (req, res) => {
   const userId = req.params.userId;
   try {
     const ordersResult = await pool.query(
@@ -267,7 +267,7 @@ app.get('/api/orders/:userId', async (req, res) => {
       [userId]
     );
     const orders = ordersResult.rows;
-
+ 
     for (const order of orders) {
       const itemsResult = await pool.query(
         `SELECT oi.quantity, p.title, p.author, p.price, p.photo_base64
