@@ -297,13 +297,7 @@ class _DeliveryDetailPageState extends State<DeliveryDetailPage> {
                 ],
               ),
               const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _toggleRoute,
-                  icon: const Icon(Icons.directions),
-                  label: Text(_showRoute ? 'Hide Route' : 'Show Route'),
-                ),
-              ),
+
               Center(
                 child: Column(
                   children: [
